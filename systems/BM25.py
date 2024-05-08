@@ -15,7 +15,7 @@ from argparse import ArgumentParser
 
 import pyterrier as pt  # type: ignore
 
-from src.load_index import setup_system, tag
+from src.load_index import load_index, load_topics, load_qrels, tag
 import yaml
 
 with open("data/LongEval/metadata.yml", "r") as yamlfile:
@@ -26,12 +26,22 @@ metadata_path = "data/results/metadata/"
 
 
 def main(args):
-    index, topics, _ = setup_system(args.index, train=args.train)
+    split_name = "train" if args.train else "test"
+    topics_name = args.topics if args.topics else args.index
+
+    print(">>> Use index:", args.index)
+    print(">>> Use topic set:", topics_name)
+    print(">>> Use topic split:", split_name)
+
+    index = load_index(args.index)
+    topics = load_topics(topics_name, split_name)
 
     # BM25
-    run_tag = tag("BM25", args.index)
+    # run_tag = tag("BM25", args.index)
     BM25 = pt.BatchRetrieve(index, wmodel="BM25", verbose=True)
-    pt.io.write_results(BM25(topics), results_path + run_tag)
+    pt.io.write_results(
+        BM25(topics), results_path + f"/CIR_BM25_D-{args.index}_T-{topics_name}"
+    )
     # write_metadata_yaml(
     #     config["metadata_path"] + run_tag + ".yml",
     #     {
@@ -398,6 +408,12 @@ if __name__ == "__main__":
         type=str,
         required=True,
         help="Name of the dataset in the config file (WT, ST or LT)",
+    )
+    parser.add_argument(
+        "--topics",
+        required=False,
+        type=str,
+        help="topics of the subcollection.",
     )
     parser.add_argument(
         "--train",
