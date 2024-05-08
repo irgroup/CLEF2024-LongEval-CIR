@@ -1,0 +1,5 @@
+pandas
+python-terrier
+pyyaml
+tqdm
+sqlalchemy
