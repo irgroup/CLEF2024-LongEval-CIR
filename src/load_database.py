@@ -28,7 +28,7 @@ class Base(DeclarativeBase):
 
 
 class Document(Base):
-    __tablename__ = "document"
+    __tablename__ = "Document"
     docid: Mapped[str] = mapped_column(primary_key=True)
     text_en: Mapped[str] = mapped_column(String(), nullable=False)
     text_fr: Mapped[str] = mapped_column(String(), nullable=True)
@@ -56,13 +56,16 @@ class Qrel(Base):
     queryid: Mapped[str] = mapped_column(ForeignKey("Topic.queryid"), primary_key=True)
     docid: Mapped[str] = mapped_column(ForeignKey("Document.docid"), primary_key=True)
     relevance: Mapped[int] = mapped_column()
+    sub_collection: Mapped[str] = mapped_column(String(), nullable=False)
+    split: Mapped[str] = mapped_column(String(), nullable=False)
 
     def __repr__(self) -> str:
         return f"Qrel(queryid={self.queryid!r}, docid={self.docid!r}, relevance={self.relevance!r})"
 
 
 def seed_database():
-    engine = create_engine("sqlite:///../data/database.db", echo=False)
+    print(BASE_PATH)
+    engine = create_engine("sqlite:///data/database.db", echo=False)
 
     Base.metadata.create_all(engine)
 
@@ -89,7 +92,7 @@ def document_generator():
 
         # docs
         for language in config["subcollections"][subcollection]["documents"]["json"]:
-            if language == "en":
+            if language == "fr":
                 continue
             docs_path = os.path.join(
                 BASE_PATH,
@@ -107,7 +110,7 @@ def document_generator():
                 for document in documents:
                     doc = Document(
                         docid=document["id"],
-                        text_fr=document["contents"],
+                        text_en=document["contents"],
                         url=urls.get(document["id"]),
                         sub_collection=subcollection,
                     )
@@ -148,15 +151,15 @@ def topic_generator():
 def qrel_generator():
     for subcollection in config["subcollections"]:
         print(">>> Importing sub-collection:", subcollection)
-        qrels = config["subcollections"][subcollection]["qrels"]
+        qrel_sets = config["subcollections"][subcollection]["qrels"]
 
-        for split in qrels.keys():
-            qrels = qrels[split]
+        for split in qrel_sets.keys():
+            qrels = qrel_sets[split]
 
             if qrels:
                 df = pd.read_csv(
                     os.path.join(BASE_PATH, qrels),
-                    sep="\t",
+                    sep=" ",
                     names=["queryid", "0", "docid", "relevance"],
                 )
                 for _, row in df.iterrows():
@@ -164,13 +167,15 @@ def qrel_generator():
                         queryid=row["queryid"],
                         docid=row["docid"],
                         relevance=row["relevance"],
+                        sub_collection=subcollection,
+                        split=split,
                     )
                     yield qrel
 
 
 def batch_import(generator):
     c = 0
-    engine = create_engine("sqlite:///../data/database.db", echo=False)
+    engine = create_engine("sqlite:///data/database.db", echo=False)
     with Session(engine) as session:
         for doc in tqdm.tqdm(generator()):
             session.add(doc)
@@ -196,10 +201,11 @@ def load_qrels():
     batch_import(qrel_generator)
 
 
-def main(args):
+def main():
     parser = ArgumentParser(description="Load the dataset to a database.")
-
-    subparsers = parser.add_subparsers(dest="command", help="Sub command help")
+    subparsers = parser.add_subparsers(
+        dest="command", required=True, help="Sub command help"
+    )
 
     seed = subparsers.add_parser("seed", help="seed the database")
     seed.set_defaults(func=seed_database)
@@ -215,12 +221,8 @@ def main(args):
     import_qrels = subparsers.add_parser("qrels", help="Add qrels to database")
     import_qrels.set_defaults(func=load_qrels)
 
-    # Parse the arguments
     args = parser.parse_args()
-    if hasattr(args, "func"):
-        args.func(**vars(args))
-    else:
-        parser.print_help()
+    args.func()  # Call the function associated with the selected subprogram
 
 
 if __name__ == "__main__":
