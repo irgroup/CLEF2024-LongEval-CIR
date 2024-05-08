@@ -18,7 +18,7 @@ BASE_PATH = os.path.join(
 )
 
 
-def _load_index(index_name: str) -> pt.IndexFactory:
+def load_index(index_name: str) -> pt.IndexFactory:
     """Load an index from disk.
 
     Args:
@@ -36,39 +36,79 @@ def _load_index(index_name: str) -> pt.IndexFactory:
     return index
 
 
-def setup_system(
-    index_name: str, train: bool = True
-) -> Tuple[pt.IndexFactory, pd.DataFrame, pd.DataFrame]:
-    """Load the index, topics and qrels for a dataset that is allready indexed.
+def load_topics(subcollection: str, split: str) -> pd.DataFrame:
+    """Load the topics for a dataset.
 
     Args:
         index_name (str): Name of the dataset split as specified in the config file.
-        train (bool, optional): Return the train or the test split. Defaults to True.
+        split (str): The split to load, either "train" or "test".
 
     Returns:
-        (pt.IndexFactory, pd.DataFrame, pd.DataFrame): The index, topics and qrels.
+        pd.DataFrame: The topics.
     """
-    split = "train" if train else "test"
 
-    index = _load_index(index_name)
-
-    topics = pt.io.read_topics(
+    return pt.io.read_topics(
         os.path.join(
             BASE_PATH,
-            config["subcollections"][index_name]["topics"][split]["trec"]["en"],
+            config["subcollections"][subcollection]["topics"][split]["trec"]["en"],
         )
     )
-    if config["subcollections"][index_name]["qrels"][split]:
-        qrels = pt.io.read_qrels(
+
+
+def load_qrels(subcollection: str, split: str) -> pd.DataFrame:
+    """Load the qrels for a dataset.
+
+    Args:
+        index_name (str): Name of the dataset split as specified in the config file.
+        split (str): The split to load, either "train" or "test".
+
+    Returns:
+        pd.DataFrame: The qrels.
+    """
+    if config["subcollections"][subcollection]["qrels"][split]:
+        return pt.io.read_qrels(
             os.path.join(
                 BASE_PATH,
-                config["subcollections"][index_name]["qrels"][split],
+                config["subcollections"][subcollection]["qrels"][split],
             )
         )
     else:
-        qrels = pd.DataFrame()
+        return pd.DataFrame()
 
-    return index, topics, qrels
+
+# def setup_system(
+#     index_name: str, train: bool = True
+# ) -> Tuple[pt.IndexFactory, pd.DataFrame, pd.DataFrame]:
+#     """Load the index, topics and qrels for a dataset that is allready indexed.
+
+#     Args:
+#         index_name (str): Name of the dataset split as specified in the config file.
+#         train (bool, optional): Return the train or the test split. Defaults to True.
+
+#     Returns:
+#         (pt.IndexFactory, pd.DataFrame, pd.DataFrame): The index, topics and qrels.
+#     """
+#     split = "train" if train else "test"
+
+#     index = _load_index(index_name)
+
+#     topics = pt.io.read_topics(
+#         os.path.join(
+#             BASE_PATH,
+#             config["subcollections"][index_name]["topics"][split]["trec"]["en"],
+#         )
+#     )
+#     if config["subcollections"][index_name]["qrels"][split]:
+#         qrels = pt.io.read_qrels(
+#             os.path.join(
+#                 BASE_PATH,
+#                 config["subcollections"][index_name]["qrels"][split],
+#             )
+#         )
+#     else:
+#         qrels = pd.DataFrame()
+
+#     return index, topics, qrels
 
 
 def tag(system: str, index: str) -> str:

@@ -1,6 +1,7 @@
 import pandas as pd
 import sqlite3
 from argparse import ArgumentParser
+from tqdm import tqdm
 
 
 def extend_run(run_path):
@@ -71,16 +72,116 @@ def extend_run(run_path):
     )
 
 
-if __name__ == "__main__":
-    parser = ArgumentParser(description="Create an pyterrier index from a config.")
+def extend_topics(run_path):
 
-    # input arguments
-    parser.add_argument(
+    print(">>> Extend topics", run_path)
+
+
+def extend_documents(run_path):
+    # Connect to the SQLite database
+    conn = sqlite3.connect("data/database.db")
+
+    # subcollection = run_path.split(".")[-1]
+    index = run_path.split("_")[-2][-2:]
+    topics = run_path.split("_")[-1][-2:]
+    print(">>> Loaded run")
+
+    run = pd.read_csv(
+        run_path,
+        sep=" ",
+        names=["queryid", "0", "docid", "relevance", "score", "run"],
+        index_col=False,
+    )
+
+    # Load doc map
+    print(">>> Load doc map")
+    docids = run["docid"].unique()
+
+    def chunker(seq, size):
+        return (seq[pos : pos + size] for pos in range(0, len(seq), size))
+
+    query_base = "SELECT docid, url FROM Document WHERE docid IN ({})"
+
+    results = []
+    for chunk in chunker(docids, 100_000):
+        placeholders = ", ".join(["?"] * len(chunk))
+        query = query_base.format(placeholders)
+        result = pd.read_sql_query(query, conn, params=chunk)
+        results.append(result)
+
+    doc_url = pd.concat(results, ignore_index=True)
+
+    query_base = (
+        "SELECT docid, url FROM Document WHERE sub_collection = ? AND url IN ({})"
+    )
+
+    results = []
+    for chunk in tqdm(
+        chunker(doc_url["url"].unique(), 100_000), total=len(doc_url) / 100_000
+    ):
+        placeholders = ", ".join(["?"] * len(chunk))
+        query = query_base.format(placeholders)
+        params = [topics] + list(chunk)
+        result = pd.read_sql_query(query, conn, params=params)
+        results.append(result)
+
+    docid_map = pd.concat(results, ignore_index=True)
+
+    # merge to create map of docids
+    docid_map = doc_url.merge(
+        docid_map.add_prefix("new_"), left_on="url", right_on="new_url", how="left"
+    )[["docid", "new_docid"]]
+
+    # Merge run with doc map
+    run = run.merge(docid_map, left_on="docid", right_on="docid", how="left")
+
+    run = run[["queryid", "0", "new_docid", "relevance", "score", "run"]].rename(
+        columns={"new_docid": "docid"}
+    )
+
+    run = run.dropna()
+
+    run.to_csv(run_path + "_extended", sep=" ", index=False, header=False)
+
+
+def main():
+    parser = ArgumentParser(description="Load the dataset to a database.")
+
+    # Create a subparser object, make sure it's required with Python 3.7+
+    subparsers = parser.add_subparsers(help="sub-command help")
+    subparsers.required = True
+
+    topics_extender = subparsers.add_parser(
+        "topics", help="Extend topic IDs with topic ids of other subcollections."
+    )
+    topics_extender.add_argument(
         "--run",
         type=str,
         required=True,
         help="Path to the run",
     )
+    topics_extender.set_defaults(func=extend_topics)
+
+    document_extender = subparsers.add_parser(
+        "documents",
+        help="Extend document IDs with document ids of other subcollections.",
+    )
+    document_extender.add_argument(
+        "--run",
+        type=str,
+        required=True,
+        help="Path to the run",
+    )
+    document_extender.set_defaults(func=extend_documents)
+
     args = parser.parse_args()
 
-    extend_run(args.run)
+    # Execute the function associated with the chosen subcommand
+    if hasattr(args, "func"):
+        args.func(args.run)
+    else:
+        parser.print_help()
+
+
+if __name__ == "__main__":
+    main()
