@@ -1,0 +1,10 @@
+version: "3"
+services:
+  clef2024-longeval-cir:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes: 
+        - ./:/workspace
+    
+    tty: true
