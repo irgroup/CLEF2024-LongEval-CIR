@@ -78,17 +78,15 @@ def document_generator():
         urls_path = os.path.join(
             BASE_PATH, config["subcollections"][subcollection]["metadata"]
         )
-
+        print(urls_path)
         with open(urls_path, "r") as f:
-            if urls_path.endswith(".txt"):
-                urls = {}
-                urls_file = f.readlines()
-                for line in urls_file:
-                    docid, url = line.strip("\n").split("\t")
-                    urls[docid] = url
-            elif urls_path.endswith(".json"):
-                urls = json.load(f)
-                urls = urls["urls"]
+            urls = {}
+            urls_file = f.readlines()
+            for line in urls_file:
+                docid, url = line.strip("\n").split("\t")
+                urls[docid] = url
+
+        print(len(urls.keys()))
 
         # docs
         for language in config["subcollections"][subcollection]["documents"]["json"]:
@@ -98,7 +96,6 @@ def document_generator():
                 BASE_PATH,
                 config["subcollections"][subcollection]["documents"]["json"][language],
             )
-            num_docs = 0  # needed for urls in json
 
             for split in os.listdir(os.path.join(BASE_PATH, docs_path)):
                 split_path = os.path.join(docs_path, split)
@@ -114,7 +111,6 @@ def document_generator():
                         url=urls.get(document["id"]),
                         sub_collection=subcollection,
                     )
-                    num_docs += 1
 
                     yield doc
 
