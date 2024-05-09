@@ -36,7 +36,7 @@ def get_system(index: pt.IndexFactory, model_path: str = "") -> pt.BatchRetrieve
         model_path = "data/models/" + model_path
         monoT5 = MonoT5ReRanker(verbose=True, batch_size=8, model=model_path)
     else:
-        monoT5 = MonoT5ReRanker(verbose=True, batch_size=4)
+        monoT5 = MonoT5ReRanker(verbose=True, batch_size=10)
 
     bm25 = pt.BatchRetrieve(
         index, wmodel="BM25", metadata=["docno", "text"], verbose=True
@@ -61,7 +61,7 @@ def main(args):
     index = load_index(args.index)
     topics = load_topics(topics_name, split_name)
 
-    system = get_system(index, args.model)
+    system = get_system(index)
 
     pt.io.write_results(
         system(topics),
@@ -101,16 +101,16 @@ if __name__ == "__main__":
         help="Name of the dataset in the config file (WT, ST or LT)",
     )
     parser.add_argument(
+        "--topics",
+        required=False,
+        type=str,
+        help="topics of the subcollection.",
+    )
+    parser.add_argument(
         "--train",
         required=False,
         action="store_true",
         help="Use the train topics to create the.",
-    )
-    parser.add_argument(
-        "--model",
-        type=str,
-        required=False,
-        help="Name of the finetuned t5 model to use.",
     )
 
     main(parser.parse_args())

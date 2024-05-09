@@ -3,3 +3,4 @@ python-terrier
 pyyaml
 tqdm
 sqlalchemy
+git+https://github.com/terrierteam/pyterrier_t5.git
