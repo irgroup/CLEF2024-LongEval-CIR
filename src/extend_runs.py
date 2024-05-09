@@ -93,6 +93,8 @@ def extend_documents(run_path):
         index_col=False,
     )
 
+    topic_set = set(run["queryid"])
+
     # Load doc map
     print(">>> Load doc map")
     docids = run["docid"].unique()
@@ -140,6 +142,11 @@ def extend_documents(run_path):
     )
 
     run = run.dropna()
+
+    topic_set_new = set(run["queryid"])
+    if set.difference(topic_set, topic_set_new):
+        print("Lost queries by deleting docs:")
+        print(set.difference(topic_set, topic_set_new))
 
     run.to_csv(run_path + "_extended", sep=" ", index=False, header=False)
 
