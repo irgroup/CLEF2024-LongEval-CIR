@@ -43,12 +43,21 @@ Afterwards, merge run files
 ### BM25 baselie
 | P_10 | bpref | ndcg |
 |---|---|---|
-| 0.1623745819397993 | 0.43728103787875366 | 0.36375525364044387 |
+| 0.1624 | 0.4373 | 0.3638 |
 
 ### Naive filters:
-| P_10 | bpref | ndcg |
-|---|---|---|
-| 0.15702341137123746 | 0.4389914588436536 | 0.35276277467835815 |
+Filter d, q pairs that are marked not relevant in previous sub-collection(s)
+
+|filter from | P_10 | bpref | ndcg |
+|---|---|---|---|
+| **t3** | _0.1798_ | _0.7784_ | _0.3851_ |
+| t2         | 0.1595 | 0.4415 | 0.3586 |
+| t2, t1     | 0.1577 | 0.4411 | 0.3553 |
+| t2, t1, t0 | 0.157  | 0.439  | 0.3528 |
+
+> no improvement, effectiveness decreases with more filters
+
+
 
 ### BM25 + time fuse
 - lost one topic because no document overlap between t3 and t2 in this ranking
@@ -85,3 +94,21 @@ Avg. Kendall's tau:  0.004242197558995947
 | P_10 | bpref | ndcg |
 |---|---|---|
 | 0.4218068440668467 | 0.10619765494137354 | 0.29136889967380725 | 
+
+
+### BM25 + boost relevant
+boos all relevant docs based on one or more qrels by the same lambda
+
+| 1.001 | t2 | 0.1625 | 0.4375 | 0.3643 |
+| 1.01  | t2 | 0.1651 | 0.4398 | 0.367 |
+| 1.1   | t2 | 0.1742 | 0.4479 | 0.379 |
+| 1.2   | t2 | 0.1766 | 0.4485 | 0.3805 |
+| 1.3   | t2 | 0.1776 | 0.4485 | 0.3813 |
+| 1.4   | t2 | 0.1778 | 0.4487 | 0.3815 |
+| 1.5   | t2 | 0.1781 | 0.4491 | 0.3818 |
+| 1.6   | t2 | 0.1784 | 0.4492 | 0.382 |
+| 1.9   | t2 | 0.1788 | 0.4493 | 0.3822 |
+| 2.5   | t2 | 0.1788 | 0.4493 | 0.3822 |
+| 3     | t2 | 0.1788 | 0.4493 | 0.3822 |
+
+> results improve over BM25. 
