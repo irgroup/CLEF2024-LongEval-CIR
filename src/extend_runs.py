@@ -4,11 +4,14 @@ from argparse import ArgumentParser
 from tqdm import tqdm
 
 
-def extend_run(run_path):
+def extend_run_full(run_path):
     # Connect to the SQLite database
     conn = sqlite3.connect("data/database.db")
 
-    subcollection = run_path.split(".")[-1]
+    for i in run_path.split("_"):
+        if i.startswith("D-"):
+            index_name = i[-2:]
+
     print(">>> Loaded run")
     run = pd.read_csv(
         run_path,
@@ -20,18 +23,35 @@ def extend_run(run_path):
     # Load doc map
     print(">>> Load doc map")
     docids = run["docid"].unique()
-    query = "SELECT docid, url FROM Document WHERE docid IN (%s);" % ",".join(
-        "?" * len(docids)
-    )
-    docmapper = pd.read_sql_query(query, conn, params=docids)
 
-    query = (
-        "SELECT docid, url, sub_collection FROM Document WHERE url IN (%s);"
-        % ",".join("?" * len(docmapper["url"].unique()))
-    )
-    docmap = pd.read_sql_query(query, conn, params=docmapper["url"].unique())
+    def chunker(seq, size):
+        return (seq[pos : pos + size] for pos in range(0, len(seq), size))
 
-    docmap = docmap.pivot(index="url", columns="sub_collection", values="docid")
+    query_base = "SELECT docid, url FROM Document WHERE docid IN ({})"
+
+    results = []
+    for chunk in chunker(docids, 100_000):
+        placeholders = ", ".join(["?"] * len(chunk))
+        query = query_base.format(placeholders)
+        result = pd.read_sql_query(query, conn, params=chunk)
+        results.append(result)
+
+    docmapper = pd.concat(results, ignore_index=True)
+
+    query_base = "SELECT docid, url, sub_collection FROM Document WHERE url IN ({})"
+
+    results = []
+    for chunk in tqdm(
+        chunker(docmapper["url"].unique(), 10_000), total=len(docmapper) / 10_000
+    ):
+        placeholders = ", ".join(["?"] * len(chunk))
+        query = query_base.format(placeholders)
+        params = list(chunk)
+        result = pd.read_sql_query(query, conn, params=params)
+        results.append(result)
+
+    docid_map = pd.concat(results, ignore_index=True)
+    docid_map = docid_map.pivot(index="url", columns="sub_collection", values="docid")
 
     # Querymap
     print(">>> Load query map")
@@ -55,25 +75,23 @@ def extend_run(run_path):
     # Merge
     print(">>> Extend run")
     run_docids_extended = run.merge(
-        docmap.add_prefix("docid_"),
+        docid_map.add_prefix("docid_"),
         left_on="docid",
-        right_on=f"docid_{subcollection}",
+        right_on=f"docid_{index_name}",
         how="left",
     )
     run_extended = run_docids_extended.merge(
         query_text_fr_map.add_prefix("queryid_"),
         left_on="queryid",
-        right_on=f"queryid_{subcollection}",
+        right_on=f"queryid_{index_name}",
         how="left",
     )
 
-    run_extended.to_csv(
-        run_path[:-3] + "_extended." + subcollection, sep=" ", index=False
-    )
+    run_extended.to_csv(run_path[:-3] + "_extended." + index_name, sep=" ", index=False)
 
 
 def extend_topics(run_path):
-
+    print("not implemented")
     print(">>> Extend topics", run_path)
 
 
@@ -180,6 +198,18 @@ def main():
         help="Path to the run",
     )
     document_extender.set_defaults(func=extend_documents)
+
+    document_extender = subparsers.add_parser(
+        "full",
+        help="Extend document IDs with document ids of other subcollections.",
+    )
+    document_extender.add_argument(
+        "--run",
+        type=str,
+        required=True,
+        help="Path to the run",
+    )
+    document_extender.set_defaults(func=extend_run_full)
 
     args = parser.parse_args()
 
