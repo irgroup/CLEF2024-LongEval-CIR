@@ -14,7 +14,7 @@ import yaml  # type: ignore
 import pyterrier as pt  # type: ignore
 
 if not pt.started():
-    pt.init()
+    pt.init(boot_packages=["com.github.terrierteam:terrier-prf:-SNAPSHOT"])
 
 with open("data/LongEval/metadata.yml", "r") as yamlfile:
     config = yaml.load(yamlfile, Loader=yaml.FullLoader)
