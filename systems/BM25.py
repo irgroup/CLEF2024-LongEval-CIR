@@ -29,10 +29,6 @@ def main(args):
     split_name = "train" if args.train else "test"
     topics_name = args.topics if args.topics else args.index
 
-    print(">>> Use index:", args.index)
-    print(">>> Use topic set:", topics_name)
-    print(">>> Use topic split:", split_name)
-
     index = load_index(args.index)
     topics = load_topics(topics_name, split_name)
 

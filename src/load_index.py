@@ -28,6 +28,7 @@ def load_index(index_name: str) -> pt.IndexFactory:
         pt.IndexFactory: The loaded index.
     """
     index = pt.IndexFactory.of(os.path.join(BASE_PATH, "index", index_name))
+    print(">>> Use index:", index_name)
     print(
         ">>> Loaded index with ",
         index.getCollectionStatistics().getNumberOfDocuments(),
@@ -36,7 +37,7 @@ def load_index(index_name: str) -> pt.IndexFactory:
     return index
 
 
-def load_topics(subcollection: str, split: str) -> pd.DataFrame:
+def load_topics(subcollection: str, split_name: str) -> pd.DataFrame:
     """Load the topics for a dataset.
 
     Args:
@@ -46,11 +47,13 @@ def load_topics(subcollection: str, split: str) -> pd.DataFrame:
     Returns:
         pd.DataFrame: The topics.
     """
+    print(">>> Use topic set:", subcollection)
+    print(">>> Use topic split:", split_name)
 
     return pt.io.read_topics(
         os.path.join(
             BASE_PATH,
-            config["subcollections"][subcollection]["topics"][split]["trec"]["en"],
+            config["subcollections"][subcollection]["topics"][split_name]["trec"]["en"],
         )
     )
 
