@@ -1,168 +1,32 @@
 # CLEF2024-LongEval-CIR
 
-| Data split | identifier |
-| --- | --- |
-| 2023 training set | t_0 / WT |
-| 2023 test set | t_1 / ST (2022_07) |
-| 2023 test set | t_2 / LT (2022_09) |
-| 2024 training set | t_3 / 2023_01 |
-| 2024 test set | t_4 / 2023_06 |
-| 2024 test set | t_5 / 2023_08 |
 
-**Indices:**
-- [ ] 1x small index based on relevant documents t_0-t_3 and Jüri's SQLite database
-- [x] 1x large index based on t_3
-- [x] 1x large index based on t_4
-- [x] 1x large index based on t_5
-
-**Submission:** Rankings based on t_4 and t_5 
-
-_Baselines:_
-BM25(t_3)
-BM25(t_4)
-BM25(t_5)
-
-_Naive filters:_
-- BM25 of t_4 + Remove "non-relevant" documents from t_0 to t_3
-- BM25 of t_5 + Remove "non-relevant" documents from t_0 to t_3
-
-_(Pseudo) relevance feedback:_
-
-Three runs based on PRF
-
-- [x] (Hybrid RF approach) six (intermediate) topics files to produce three runs based on RF and PRF
-- Two topic sets for t_3: one with topics overlaps in t_0-t_2 and t_3, the other one for new topics in t_3
-- Two topic sets for t_4: one with topics overlaps in t_0-t_3 and t_4, the other one for new topics in t_4
-- Two topic sets for t_5: one with topics overlaps in t_0-t_3 and t_5, the other one for new topics in t_5
-
-Afterwards, merge run files 
+## Abstract
+> This work reports our participation in the retrieval task of the second LongEval lab iteration at CLEF 2024. As
+part of this year’s contribution, we analyze to which extent prior relevance signals on the document level and
+term level can be used to improve the retrieval effectiveness. In order to exploit these kinds of signals, we fetch
+corresponding document identifiers pointing to the same document in the different dataset slices of all timestamps.
+Based on several heuristics, we submit and evaluate a total of five systems that either follow our previous year’s
+methodology or that combine baseline rankings with prior relevance signals. Our evaluations provide insights to
+which extent these signals can be used but let us also conclude with several recommendations for future work.
+Most notably, we envision a companion resource that ties together all slices of the dataset by unified document
+identifiers to have a better understanding of more rigorous data splits and to avoid potential data leakage that
+might affect the evaluation of (deep) learning-based systems.
 
 
-
-## Experiments on t3:
-### BM25 baselie
-| P_10 | bpref | ndcg |
-|---|---|---|
-| 0.1624 | 0.4373 | 0.3638 |
-
-### Naive filters:
-Filter d, q pairs that are marked not relevant in previous sub-collection(s)
-
-|filter from | P_10 | bpref | ndcg |
-|---|---|---|---|
-| **t3** | _0.1798_ | _0.7784_ | _0.3851_ |
-| t2         | 0.1595 | 0.4415 | 0.3586 |
-| t2, t1     | 0.1577 | 0.4411 | 0.3553 |
-| t2, t1, t0 | 0.157  | 0.439  | 0.3528 |
-
-> no improvement, effectiveness decreases with more filters
-
-
-
-### BM25 + time fuse
-- ~~lost one topic because no document overlap between t3 and t2 in this ranking~~
-- Topics that have no known docs are boosted down and not excluded.
-
-| $\lambda$ | $\overline{\tau}$ | P_10 | bpref | ndcg |
-|---|---|---|---|---|
-| 0.501 | 0.0789 | 0.1652 | 0.437 | 0.3666 |
-| 0.5004641588833613 | 0.1459 | 0.1635 | 0.4371 | 0.3653 |
-| 0.5002154434690032 | 0.2631 | 0.163 | 0.437 | 0.3649 |
-| 0.5001 | 0.4268 | 0.1627 | 0.4372 | 0.3641 |
-| 0.5000464158883361 | 0.592 | 0.1627 | 0.4373 | 0.3639 |
-| 0.5000215443469003 | 0.7306 | 0.1624 | 0.4374 | 0.3639 |
-| 0.50001 | 0.8274 | 0.1624 | 0.4373 | 0.3638 |
-| 0.5000046415888336 | 0.888 | 0.1624 | 0.4373 | 0.3638 |
-| 0.50000215443469 | 0.9201 | 0.1624 | 0.4373 | 0.3638 |
-| 0.500001 | 0.9378 | 0.1624 | 0.4373 | 0.3638 |
-| 0.1 | 0.0061 | 0.1214 | 0.4335 | 0.3139 |
-| 0.2 | 0.0061 | 0.1214 | 0.4335 | 0.3139 |
-| 0.3 | 0.0061 | 0.1214 | 0.4335 | 0.3139 |
-| 0.4 | 0.0059 | 0.1217 | 0.4333 | 0.3153 |
-| 0.5 | 1.0 | 0.1624 | 0.4373 | 0.3638 |
-| 0.5000000001 | 0.9548 | 0.1624 | 0.4373 | 0.3638 |
-| 0.500000001 | 0.9548 | 0.1624 | 0.4373 | 0.3638 |
-| 0.50000001 | 0.9545 | 0.1624 | 0.4373 | 0.3638 |
-| 0.5000001 | 0.9531 | 0.1624 | 0.4373 | 0.3638 |
-| 0.500001 | 0.9378 | 0.1624 | 0.4373 | 0.3638 |
-| 0.50001 | 0.8274 | 0.1624 | 0.4373 | 0.3638 |
-| 0.5001 | 0.4268 | 0.1627 | 0.4372 | 0.3641 |
-| 0.501 | 0.0789 | 0.1652 | 0.437 | 0.3666 |
-| 0.502 | 0.0452 | 0.1694 | 0.4361 | 0.3677 |
-| 0.503 | 0.0348 | 0.1722 | 0.4367 | 0.3686 |
-| 0.504 | 0.031 | 0.1717 | 0.436 | 0.3691 |
-| 0.505 | 0.0278 | 0.1712 | 0.4348 | 0.3694 |
-| 0.506 | 0.0237 | 0.1721 | 0.435 | 0.3694 |
-| 0.507 | 0.0223 | 0.1722 | 0.4342 | 0.3675 |
-| 0.508 | 0.0213 | 0.1741 | 0.4346 | 0.3665 |
-| 0.509 | 0.0205 | 0.1751 | 0.4332 | 0.3657 |
-| 0.51 | 0.0176 | 0.1756 | 0.432 | 0.3641 |
-| 0.52 | 0.0141 | 0.1664 | 0.4302 | 0.3515 |
-| 0.53 | 0.0136 | 0.1533 | 0.4268 | 0.3396 |
-| 0.54 | 0.0133 | 0.1403 | 0.4246 | 0.3278 |
-| 0.55 | 0.0136 | 0.1316 | 0.4231 | 0.3166 |
-| 0.56 | 0.0147 | 0.1244 | 0.4213 | 0.3066 |
-| 0.5700000000000001 | 0.0135 | 0.1226 | 0.42 | 0.2996 |
-| 0.58 | 0.0121 | 0.1191 | 0.42 | 0.2928 |
-| 0.59 | 0.0128 | 0.1167 | 0.4198 | 0.2875 |
-| 0.6 | 0.0134 | 0.1157 | 0.4196 | 0.2841 |
-| 0.601 | 0.0133 | 0.1156 | 0.4196 | 0.2839 |
-| 0.602 | 0.0131 | 0.1156 | 0.4196 | 0.2836 |
-| 0.603 | 0.0129 | 0.1156 | 0.4195 | 0.2833 |
-| 0.604 | 0.013 | 0.1156 | 0.4194 | 0.2831 |
-| 0.605 | 0.0123 | 0.1154 | 0.4193 | 0.2828 |
-| 0.606 | 0.0126 | 0.1152 | 0.4193 | 0.2826 |
-| 0.607 | 0.0129 | 0.1152 | 0.4192 | 0.2823 |
-| 0.608 | 0.0128 | 0.1149 | 0.4192 | 0.2821 |
-| 0.609 | 0.0129 | 0.1149 | 0.4192 | 0.2819 |
-| 0.7 | 0.012 | 0.1125 | 0.4194 | 0.2764 |
-| 0.8 | 0.0122 | 0.1125 | 0.4194 | 0.2763 |
-| 0.9 | 0.0122 | 0.1125 | 0.4194 | 0.2763 |
-| 1.0 | 0.0061 | 0.112 | 0.399 | 0.2657 |
-
-### BM25 + Filter Fuse
-- Lost more topics
-
-| $\overline{\tau}$ | history | P_10 | bpref | ndcg |
-|---|---|---|---|---|
-| 0.00873296943962716 | t2 | 0.1117 | 0.4263 | 0.305 |
-| 0.005752406303693579 | t2, t1 | 0.0987 | 0.4163 | 0.2825 |
-| 0.00580605559250212 | t2, t1, t0 | 0.1007 | 0.4178 | 0.2758 |
-
-
-
-
-> P_10 is super high
-
-### BM25 + qrel boost
-Boos all relevant docs based on one or more qrels by the same lambda
-| history |$\lambda$ | P_10 | bpref | ndcg |
-|---|---|---|---|---|
-| t2 | 0.1 | 0.154 | 0.4231 | 0.349 |
-| t2 | 0.2 | 0.154 | 0.4231 | 0.349 |
-| t2 | 0.30000000000000004 | 0.154 | 0.4231 | 0.3491 |
-| t2 | 0.4 | 0.154 | 0.4238 | 0.3505 |
-| t2 | 0.5 | 0.1624 | 0.4373 | 0.3638 |
-| t2 | 0.6 | 0.1781 | 0.4491 | 0.3818 |
-| t2 | 0.7000000000000001 | 0.1788 | 0.4493 | 0.3822 |
-| t2 | 0.8 | 0.1788 | 0.4493 | 0.3822 |
-| t2 | 0.9 | 0.1788 | 0.4493 | 0.3822 |
-| t2, t1 | 0.1 | 0.1513 | 0.4164 | 0.3442 |
-| t2, t1 | 0.2 | 0.1513 | 0.4164 | 0.3442 |
-| t2, t1 | 0.30000000000000004 | 0.1513 | 0.4165 | 0.3443 |
-| t2, t1 | 0.4 | 0.1517 | 0.4185 | 0.3464 |
-| t2, t1 | 0.5 | 0.1574 | 0.4256 | 0.3598 |
-| t2, t1 | 0.6 | 0.1828 | 0.4527 | 0.3884 |
-| t2, t1 | 0.7000000000000001 | 0.1858 | 0.4533 | 0.3909 |
-| t2, t1 | 0.8 | 0.1858 | 0.4533 | 0.3909 |
-| t2, t1 | 0.9 | 0.1858 | 0.4533 | 0.3906 |
-| t2, t1, t0 | 0.1 | 0.1492 | 0.4119 | 0.3407 |
-| t2, t1, t0 | 0.2 | 0.1492 | 0.4119 | 0.3407 |
-| t2, t1, t0 | 0.30000000000000004 | 0.1492 | 0.4122 | 0.3409 |
-| t2, t1, t0 | 0.4 | 0.1495 | 0.4148 | 0.343 |
-| t2, t1, t0 | 0.5 | 0.1559 | 0.4219 | 0.3571 |
-| t2, t1, t0 | 0.6 | 0.1858 | 0.4534 | 0.3901 |
-| t2, t1, t0 | 0.7000000000000001 | 0.1891 | 0.4542 | 0.3928 |
-| t2, t1, t0 | 0.8 | 0.1891 | 0.4542 | 0.3928 |
-| t2, t1, t0 | 0.9 | 0.1891 | 0.4541 | 0.3927 |
-> results improve over BM25. 
+## Citation
+```
+@inproceedings{clef/prior_signals,
+  author       = {J{\"{u}}ri Keller and
+                  Timo Breuer and
+                  Philipp Schaer},
+  title        = {Leveraging Prior Relevance Signals in Web Search},
+  booktitle    = {Working Notes of the Conference and Labs of the Evaluation Forum {(CLEF}
+                  2024), Grenoble, France, 9-12 September, 2024},
+  series       = {{CEUR} Workshop Proceedings},
+  volume       = {3740},
+  pages        = {2396--2406},
+  publisher    = {CEUR-WS.org},
+  year         = {2024},
+}
+```
